@@ -1,7 +1,4 @@
-# Red Social Vegan-Book
-
-https://dev-008-social-network-veganbook.vercel.app/
-
+# Expense-control app
 
 ## Índice
 
@@ -16,7 +13,7 @@ https://dev-008-social-network-veganbook.vercel.app/
 
 El objetivo de este proyecto es desarrollar una aplicación responsiva que permita a los usuarios gestionar sus finanzas de manera sencilla e intuitiva. La app facilita acciones como crear, editar y eliminar gastos, así como definir presupuestos, filtrar por categorías (Ahorro, Comida, Salud, Ocio, Suscripciones, entre otras), y consultar el saldo disponible y los gastos realizados. Además, ofrece una visualización clara y amigable de los datos, tanto en su totalidad como según filtros personalizados, apoyándose en gráficos que representen los porcentajes de gasto para una comprensión rápida y efectiva.
 
-![imagen] (./src/assets/img/home.png)
+![imagen] (src\assets\img\home.png)
 ![imagen] (./src/assets/img/gastos.png)
 
 ## 2. Características
