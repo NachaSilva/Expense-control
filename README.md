@@ -1,7 +1,4 @@
-# Red Social Vegan-Book
-
-https://dev-008-social-network-veganbook.vercel.app/
-
+# Expense-control app
 
 ## Índice
 
