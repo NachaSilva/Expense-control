@@ -1,103 +1,187 @@
 <script setup>
-import { ref, reactive } from 'vue';
-import Presupuesto from './components/Presupuesto.vue';
-import ControlPresupuesto from './components/ControlPresupuesto.vue';
-import Modal from './components/Modal.vue'
-import Gasto from './components/Gasto.vue'
-import {generarId} from './helpers/index'
-import iconoNuevoGasto from './assets/img/nuevo-gasto.svg'
+  import { ref, reactive, watch, computed, onMounted } from 'vue'
+  import Presupuesto from './components/Presupuesto.vue';
+  import ControlPresupuesto from './components/ControlPresupuesto.vue';
+  import Modal from './components/Modal.vue'
+  import Filtros from './components/Filtros.vue'
+  import Gasto from './components/Gasto.vue'
+  import { generarId } from './helpers'
+  import iconoNuevoGasto from './assets/img/nuevo-gasto.svg'
 
+  const modal = reactive({
+    mostrar: false,
+    animar: false
+  })
+  const presupuesto = ref(0)
+  const disponible = ref(0)
+  const gastado = ref(0)
+  const filtro = ref('')
 
-const modal = reactive({
-    mostrar:false,
-    animar:false
-})
-const presupuesto = ref(0)
-const disponible =ref(0)
-
-const gasto = reactive({
+  const gasto = reactive({
     nombre: '',
     cantidad: '',
     categoria: '',
     id: null,
     fecha: Date.now()
-})
-const gastos = ref([]) 
+  })
+  const gastos = ref([])
 
-const definirPresupuesto = (cantidad)=>{
-   presupuesto.value =cantidad 
-   disponible.value = cantidad
-}
+  watch(gastos, () => {
+    const totalGastado = gastos.value.reduce((total, gasto) => gasto.cantidad + total, 0)
+    gastado.value = totalGastado
+    disponible.value = presupuesto.value - totalGastado
+    localStorage.setItem('gastos', JSON.stringify(gastos.value))
+  }, {
+    deep: true
+  })
 
-const mostrarModal = ()=>{
-    modal.mostrar=true
+  watch(modal, () => {
+    if(!modal.mostrar) {
+      reiniciarStateGasto();
+    }
+  }, {
+    deep: true
+  })
 
-    setTimeout(()=>{
-        modal.animar=true
-    },300)
-}
-const ocultarModal = ()=>{
-    modal.animar=false
-    setTimeout(()=>{
-        modal.mostrar=false
-    },300)   
-}
-const guardarGasto = ()=>{
-    gastos.value.push({
+  //Guardar data
+  watch(presupuesto, () => {
+    localStorage.setItem('presupuesto', presupuesto.value)
+  })
+
+  onMounted(() => {
+    const presupuestoStorage = localStorage.getItem('presupuesto')
+    if(presupuestoStorage) {
+      presupuesto.value = Number(presupuestoStorage)
+      disponible.value = Number(presupuestoStorage)
+    }
+
+    const gastosStorage = localStorage.getItem('gastos')
+    if(gastosStorage) {
+      gastos.value = JSON.parse(gastosStorage)
+    }
+  })
+
+  const definirPresupuesto = (cantidad) => {
+    presupuesto.value = cantidad
+    disponible.value = cantidad
+  }
+
+  const mostrarModal = () => {
+    modal.mostrar = true
+    setTimeout(() => {
+      modal.animar = true
+    }, 300);
+  }
+
+  const ocultarModal = () => {
+    modal.animar = false
+    setTimeout(() => {
+      modal.mostrar = false
+    }, 300);
+  }
+
+  const guardarGasto = () => {
+    if(gasto.id) {
+      // editando
+      const { id } = gasto
+      const i = gastos.value.findIndex((gasto => gasto.id === id))
+      gastos.value[i] = {...gasto}
+    } else {
+      // registro nuevo
+      gastos.value.push({
         ...gasto,
         id: generarId()
-    })
+      })
+    }
 
     ocultarModal()
+    reiniciarStateGasto()
+  }
 
-    //Reiniciar objeto
-    Object.assign(gasto,{
-    nombre: '',
-    cantidad: '',
-    categoria: '',
-    id: null,
-    fecha: Date.now()
+  const reiniciarStateGasto = () => {
+    // Reiniciar el objeto
+    Object.assign(gasto, {
+      nombre: '',
+      cantidad: '',
+      categoria: '',
+      id: null,
+      fecha: Date.now()
     })
-}
+  }
+
+  const seleccionarGasto = id => {
+    const gastoEditar = gastos.value.filter(gasto => gasto.id === id)[0]
+    Object.assign(gasto, gastoEditar);
+    mostrarModal()
+  }
+
+  const eliminarGasto = () => {
+    if(confirm('Eliminar?')) {
+      gastos.value = gastos.value.filter(gastoState => gastoState.id !== gasto.id)
+      ocultarModal()
+    }
+  }
+
+  const gastosFiltrados = computed(() => {
+      if(filtro.value) {
+        return gastos.value.filter(gasto => gasto.categoria === filtro.value)
+      }
+      return gastos.value
+  })
+
+  const resetApp = () => {
+    if(confirm('¿Deseas reiniciar presupuesto y gastos?')) {
+        gastos.value = []
+        presupuesto.value = 0
+    }
+  }
+
 </script>
 
 <template>
-<div
-:class="{fijar:modal.mostrar}">
-    <header>
-       <h1> Planificador de gastos</h1>
-       <div class="contenedor-header contenedor sombra">
-       <Presupuesto 
-       v-if="presupuesto===0"
-       @definir-presupuesto="definirPresupuesto"
-       />
-      <ControlPresupuesto
-      v-else
-      :presupuesto = "presupuesto"
-      :disponible = "disponible"
-      />
-    </div>
-    </header>
+  <div
+    :class="{fijar: modal.mostrar}"
+  >
+      <header>
+          <h1>Planificador de Gastos</h1>
+          <div class="contenedor-header contenedor sombra">
+              <Presupuesto 
+                  v-if="presupuesto === 0"
+                  @definir-presupuesto="definirPresupuesto"
+              />
+              <ControlPresupuesto
+                  v-else
+                  :presupuesto="presupuesto"
+                  :disponible="disponible"
+                  :gastado="gastado"
+                  @reset-app="resetApp"
+              />
+          </div>
+      </header>
 
-    <main v-if="presupuesto>0">
+      <main v-if="presupuesto > 0">
+          <Filtros 
+              v-model:filtro="filtro"
+          />
+          <div class="listado-gastos contenedor">
+              <h2>{{ gastosFiltrados.length > 0 ? 'Gastos' : 'No hay gastos' }} </h2>
+              <Gasto
+                v-for="gasto in gastosFiltrados"
+                :key="gasto.id"
+                :gasto="gasto"
+                @seleccionar-gasto="seleccionarGasto"
+              />
+          </div>
+          
+          <div class="crear-gasto">
+              <img
+                :src="iconoNuevoGasto"
+                alt="icono nuevo gasto"
+                @click="mostrarModal"
+              />
+          </div>
 
-        <div class="listado-gastos contenedor">
-            <h2>{{ gastos.length >0 ? 'Gastos': 'No hay gastos' }}</h2>
-            <Gasto
-            v-for="gasto in gastos"
-            :key="gasto.id"
-            :gasto ="gasto"
-            />
-        </div>
-
-
-<div class="crear-gasto">
-<img :src="iconoNuevoGasto" alt="icono nuevo gasto"
-@click="mostrarModal"
-/>
-
-</div>
-<Modal
+          <Modal
               v-if="modal.mostrar"
               @ocultar-modal="ocultarModal"
               @guardar-gasto="guardarGasto"
@@ -109,11 +193,8 @@ const guardarGasto = ()=>{
               v-model:cantidad="gasto.cantidad"
               v-model:categoria="gasto.categoria"
           />
-
-    </main>
-
-    <Filtro/>
-</div>
+      </main>
+  </div>
 </template>
 
 <style >
