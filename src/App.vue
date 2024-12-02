@@ -130,7 +130,7 @@
   })
 
   const resetApp = () => {
-    if(confirm('¿Deseas reiniciar presupuesto y gastos?')) {
+    if(confirm('Deseas reiniciar presupuesto y gastos?')) {
         gastos.value = []
         presupuesto.value = 0
     }
